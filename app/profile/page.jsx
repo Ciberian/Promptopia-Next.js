@@ -19,7 +19,9 @@ const MyProfile = () => {
       setMyPosts(data);
     };
 
-    if (session?.user.id) fetchPosts();
+    if (session?.user.id) {
+      fetchPosts();
+    }
   }, [session?.user.id]);
 
   const handleEdit = (post) => {

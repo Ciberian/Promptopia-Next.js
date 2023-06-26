@@ -1,34 +1,146 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+Проект создан на основании видеоурока, с целью изученя новой верисии Next.js - [Next 13](https://youtu.be/wm5gMKuwSYk)
 
-## Getting Started
+## Преимущество SSR(Server Side Rendering) перед CSR(Client Side Rendering).
 
-First, run the development server:
+1. **SEO.**
+   При **SSR** на клиент отправляется уже готовая страница.
+   При **CSR** - клиенту отправляется пустой HTML-файл, скрипт и данные.
+   И далее уже происходит отрисовка интерфейса.
+   Данный подход ухудшает индексацию данных на сайте, поисковыми роботами.
+
+2. **Скорость загрузки.**
+   Клиент при **CSR** должен скачивать много данных, в том числе и тех, которые ему не нужны на текущий момент.
+   Особенно это заметно при первой загрузке данных на клиент.
+   При **SSR** размер отправляемых данных меньше, т.к. часть логики остаётся на сервере и не отправляется клиенту.
+   Весь код приложения автоматически разбивается на чанки и отправляется клиенту по мере необходимости.
+
+3. **Роутинг.**
+   Для **CSR** мы должны использовать вспомогательный пакет ReactRouter, чтобы реализовать роутинг в приложении.
+   Для **SSR** роутинг просто выстраивается с помощью файловой структуры в папке `app/` (которая создаётся в корне Next-приложения).
+
+Пример:
+```
+|app/
+|--page.js 	     // страница корневого роута (домашняя страница) https://localhost:3000/
+|--posts/
+|----page.js  	 // страница со списком постов https://localhost:3000/posts
+|------new
+|--------page.js // страница с новым постом https://localhost:3000/posts/new
+|------[postId]
+|--------page.js // страница с динамическим роутом https://localhost:3000/posts/1234
+```
+
+Динамические сегменты (параметры пути) передаются в качестве параметра `params` функциям _layout, page, route_ и _generateMetadata_.
+
+Пример:
+```
+export default function Page({ params }) {
+  return <div>My Post: {params.postId}</div>
+}
+```
+
+Параметры запроса получаем с помощь хука _useSearchParams()_.
+Пример:
+
+```
+const searchParams = useSearchParams();
+const someFilter = searchParams.get('filter');
+```
+
+4. NextJS поддерживает **SSR** и/или **SSG(Static Side Generation)**.
+   Для SSG реализован механизм инкрементной регенерации статических сайтов - **Incremental Static Regeneration (ISR)**.
+   Данный механизм позволяет обновлять статический контент, без полной пересборки проекта.
+
+---
+
+## Заметки по NextJS.
+
+### Основа.
+
+1. В Next-приложении, компоненты бывают 2-х видов.
+   По умолчанию все компоненты в папке `app/` серверные.
+   Чтобы сделать компонент клиентским, необходимо в файл (первой строкой) добавить директиву `"use client"`.
+
+2. Компонент серверный, если в нём:
+
+- выполняем запрос на получение данных;
+- получаем прямой доступ к бэкенд-ресурсам;
+- храним чувствительную информацию (токены, ключи и пр);
+- если в нём используется большое количество зависимостей.
+
+3. Компонет клиентский, если в нём:
+
+- есть слушатели событий (onClick, onChange etc);
+- используются реакт-хуки;
+- используется браузерный API;
+- используются классовые реакт-компоненты.
+
+4. NextJS-приложение сочетает в себе фронтенд и бэкенд логику.
+   В папке `app/` размещается папка `api/` и в ней хранится вся логика связанная с бэкендом.
+   Выстраивание файловой структуры в ней аналогично, тому как создаются роуты в папке `app/`, только вместо файлов `page.js` используются файлы `route.js`.
+   Endpoint-ы в файле `route.js` представляют собой функции, имена который совпадают с названием HTTP-методов - `GET, POST, PATCH` и т.д.
+   Таких функций может быть несколько в `route.js`, по одной на каждый метод.
+
+### Вспомогательные файлы.
+
+Помимо файла `page.js` в каждой папке-роутере могут располагаться вспомогательные файлы - `layout.js, loading.js, error.js`.
+
+1. Файл `layout.js` представляет собой некий шаблон, который отображается на всех дочерних роутах.
+   `layout.js` расположенный в `app/` будет использоваться на всех страницах.
+   `layout.js` расположенный в `app/posts` будет использоваться только для маршрута https://localhost:3000/posts/
+   и всех роутов, которые являются дочерними по отношению к роуту `posts/`, например - https://localhost:3000/posts/new
+
+2. Файл `loading.js` - содержит в себе компонент - загрузочный экран.
+   Данный компонент как следует из названия, отображается, когда происходит загрузка данных. 
+   И загрузка данных именно в файле `page.js` который находится в одной директории с файлойлом `loading.js`.
+
+3. Файл `error.js` - запускается автоматически если, по тому маршруту, где он расположен происходит ошибка.
+   Внутри него мы имеем доступ, к возникшим ошибкам, а так же можем реализовать различную логику, как пример перенаправление
+   пользователя на исходную страницу.
+
+4. Файлы `page.js`, или `layout.js` могут содержать специальный объект `metadata`, в который можно передавать как статические, так и динамические данные.
+   Эти данные попадают в тег `head` и используются для SEO и для задания заголовка(`title`) страницы в браузере.
+
+### Архитектура приложения.
+
+app/ - директория со страница приложения.
+app/api - api-роуты с бэкенд-логикой.
+components/ - реакт-компоненты.
+models/ - модели для взаимодействия с БД.
+public/ - статика, изображения, видео и пр.
+styles/ - файл с глобальными стилями приложения.
+utils/ - файлы с утилитарными функциями.
+
+Формируем страницу на основе реакт-компонентов.
+Там же выполняем запрос к api и получаем данные.
+Передаём данные компонентам, получаем готовую страницу.
+
+---
+
+Данное [Next.js](https://nextjs.org/) - приложение создано с помощью утилиты [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+
+## Запуск в режиме разработки
+
+Для запуска dev-сервера выполните следующую команду:
 
 ```bash
 npm run dev
-# or
+# или
 yarn dev
-# or
+# или
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Откройте в браузере вкладку по следующему адресу [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Изучить подробнее
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+Больше информации о Next.js, вы сможете получить следующих ресурсах:
 
-## Learn More
+- [Next.js Documentation](https://nextjs.org/docs) - особенности Next.js и API.
+- [Learn Next.js](https://nextjs.org/learn) - интерактивный туторила по Next.js.
 
-To learn more about Next.js, take a look at the following resources:
+## Развертывание на Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Развернуть приложение можно на [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme).
+Больше информации по данной теме по ссылке [Next.js deployment documentation](https://nextjs.org/docs/deployment).
