@@ -1,4 +1,4 @@
-Проект создан на основании видеоурока, с целью изучения новой версии Next.js - [Next 13](https://youtu.be/wm5gMKuwSYk)
+Проект создан на основании [видеоурока](https://youtu.be/wm5gMKuwSYk), с целью изучения 13 версии Next.js.
 
 ## Преимущество SSR(Server Side Rendering) перед CSR(Client Side Rendering).
 
